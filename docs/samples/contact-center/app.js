@@ -22,6 +22,7 @@ const tokenElm = document.querySelector('#access-token');
 const saveElm = document.querySelector('#access-token-save');
 const authStatusElm = document.querySelector('#access-token-status');
 const registerBtn = document.querySelector('#webexcc-register');
+const registerStatus = document.querySelector('#ws-connection-status');
 
 
 // Store and Grab `access-token` from localstorage
@@ -94,7 +95,7 @@ function initWebex(e) {
     console.log('Authentication#initWebex() :: Webex Ready');
 
     authStatusElm.innerText = 'Saved access token!';
-
+    registerStatus.innerText = 'Not Registered';
     registerBtn.disabled = false;
   });
 
@@ -105,6 +106,7 @@ credentialsFormElm.addEventListener('submit', initWebex);
 
 function register() {
     webex.cc.register().then((data) => {
+        registerStatus.innerText = 'Registered';
         console.log('Event subscription successful: ', data);
     }).catch(() => {
         console.log('Event subscription failed');
