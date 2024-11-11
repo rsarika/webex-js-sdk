@@ -1,4 +1,6 @@
 /* eslint-disable */
+// TODO: Try to find alternative to using Blob and script here
+const workerScript = `
 console.log("*** Keepalive Worker Thread ***");
 let intervalId, intervalDuration, timeOutId, isSocketClosed, closeSocketTimeout;
 let initialised = false;
@@ -15,7 +17,7 @@ const resetOfflineHandler = function () {
 const checkOnlineStatus = function () {
   const onlineStatus = navigator.onLine;
   console.log(
-    `[WebSocketStatus] event=checkOnlineStatus | timestamp=${new Date()}, UTC=${new Date().toUTCString()} | online status=`,
+    \`[WebSocketStatus] event=checkOnlineStatus | timestamp=${new Date()}, UTC=${new Date().toUTCString()} | online status=\`,
     onlineStatus
   );
   return onlineStatus;
@@ -82,3 +84,6 @@ self.addEventListener('offline', () => {
   console.log('Network status: offline');
   checkNetworkStatus();
 });
+`;
+
+export default workerScript;

@@ -1,11 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import * as config from '../../../../../src/services/core/config';
-import {AqmReqs} from '../../../../../src/services/core/aqm-reqs';
-import {HTTP_METHODS} from '../../../../../src/types';
+import { AqmReqs } from '../../../../../src/services/core/aqm-reqs';
 import HttpRequest from '../../../../../src/services/core/HttpRequest';
-import LoggerProxy from '../../../../../src/logger-proxy';
-import * as Err from '../../../../../src/services/core/Err';
-import {Msg} from '../../../../../src/services/core/GlobalTypes';
+import { WebSocketManager } from '../../../../../src/services/core/WebSocket/WebSocketManager';
+import { Signal } from '../../../../../src/services/core/Signal';
 
 jest.mock('../../../../../src/services/core/HttpRequest');
 jest.mock('../../../../../src/logger-proxy', () => ({
@@ -14,51 +10,56 @@ jest.mock('../../../../../src/logger-proxy', () => ({
     logger: {
       log: jest.fn(),
       error: jest.fn(),
+      info: jest.fn(),
     },
     initialize: jest.fn(),
   },
 }));
+jest.mock('../../../../../src/services/core/WebSocket/WebSocketManager');
+
 const mockHttpRequest = HttpRequest as jest.MockedClass<typeof HttpRequest>;
+const mockWebSocketManager = WebSocketManager as jest.MockedClass<typeof WebSocketManager>;
 
 describe('AqmReqs', () => {
   let httpRequestInstance: jest.Mocked<HttpRequest>;
+  let webSocketManagerInstance: jest.Mocked<WebSocketManager>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     httpRequestInstance = new HttpRequest() as jest.Mocked<HttpRequest>;
     mockHttpRequest.getInstance = jest.fn().mockReturnValue(httpRequestInstance);
+
+    webSocketManagerInstance = new WebSocketManager({ webex: {} as any }) as jest.Mocked<WebSocketManager>;
+    const { send, signal } = Signal.create.withData<string>();
+    webSocketManagerInstance.onMessage = signal;
+    webSocketManagerInstance.onMessageSend = send;
+    mockWebSocketManager.mockImplementation(() => webSocketManagerInstance);
   });
 
   it('AqmReqs should be defined', async () => {
     httpRequestInstance.request.mockResolvedValueOnce({
       status: 202,
-      data: {webSocketUrl: 'fake-url'},
+      data: { webSocketUrl: 'fake-url' },
       statusText: 'OK',
       headers: {},
       config: {},
     });
 
-    const mockWebSocket = {
-      on: jest.fn(),
-    };
-
-    httpRequestInstance.getWebSocket = jest.fn().mockReturnValue(mockWebSocket);
-
-    const aqm = new AqmReqs();
+    const aqm = new AqmReqs(webSocketManagerInstance);
     const req = aqm.req(() => ({
       url: '/url',
       timeout: 2000,
       notifSuccess: {
         bind: {
           type: 'RoutingMessage',
-          data: {type: 'AgentConsultConferenced', interactionId: 'intrid'},
+          data: { type: 'AgentConsultConferenced', interactionId: 'intrid' },
         },
         msg: {},
       },
       notifFail: {
         bind: {
           type: 'RoutingMessage',
-          data: {type: 'AgentConsultConferenceFailed'},
+          data: { type: 'AgentConsultConferenceFailed' },
         },
         errId: 'Service.aqm.contact.consult',
       },
@@ -74,19 +75,13 @@ describe('AqmReqs', () => {
   it('AqmReqs notifcancel', async () => {
     httpRequestInstance.request.mockResolvedValueOnce({
       status: 202,
-      data: {webSocketUrl: 'fake-url'},
+      data: { webSocketUrl: 'fake-url' },
       statusText: 'OK',
       headers: {},
       config: {},
     });
 
-    const mockWebSocket = {
-      on: jest.fn(),
-    };
-
-    httpRequestInstance.getWebSocket = jest.fn().mockReturnValue(mockWebSocket);
-
-    const aqm = new AqmReqs();
+    const aqm = new AqmReqs(webSocketManagerInstance);
     const req = aqm.req(() => ({
       url: '/url',
       timeout: 4000,
@@ -103,7 +98,7 @@ describe('AqmReqs', () => {
       notifFail: {
         bind: {
           type: 'RoutingMessage',
-          data: {type: 'AgentConsultFailed'},
+          data: { type: 'AgentConsultFailed' },
         },
         errId: 'Service.aqm.contact.consult',
       },
@@ -124,13 +119,13 @@ describe('AqmReqs', () => {
         req({}),
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            aqm['onMessage']({
+            webSocketManagerInstance.onMessageSend(JSON.stringify({
               type: 'RoutingMessage',
               data: {
                 type: 'AgentCtqCancelled',
                 interactionId: '6920dda3-337a-48b1-b82d-2333392f9905',
               },
-            });
+            }));
             resolve();
           }, 1000);
         }),
@@ -142,19 +137,13 @@ describe('AqmReqs', () => {
   it('AqmReqs notif success', async () => {
     httpRequestInstance.request.mockResolvedValueOnce({
       status: 202,
-      data: {webSocketUrl: 'fake-url'},
+      data: { webSocketUrl: 'fake-url' },
       statusText: 'OK',
       headers: {},
       config: {},
     });
 
-    const mockWebSocket = {
-      on: jest.fn(),
-    };
-
-    httpRequestInstance.getWebSocket = jest.fn().mockReturnValue(mockWebSocket);
-
-    const aqm = new AqmReqs();
+    const aqm = new AqmReqs(webSocketManagerInstance);
     const req = aqm.req(() => ({
       url: '/url',
       timeout: 4000,
@@ -171,7 +160,7 @@ describe('AqmReqs', () => {
       notifFail: {
         bind: {
           type: 'RoutingMessage',
-          data: {type: 'AgentConsultFailed'},
+          data: { type: 'AgentConsultFailed' },
         },
         errId: 'Service.aqm.contact.consult',
       },
@@ -192,13 +181,13 @@ describe('AqmReqs', () => {
         req({}),
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            aqm['onMessage']({
+            webSocketManagerInstance.onMessageSend(JSON.stringify({
               type: 'RoutingMessage',
               data: {
                 type: 'AgentConsultCreated',
                 interactionId: '6920dda3-337a-48b1-b82d-2333392f9906',
               },
-            });
+            }));
             resolve();
           }, 1000);
         }),
@@ -210,13 +199,7 @@ describe('AqmReqs', () => {
   it('AqmReqs notif success with async error', async () => {
     httpRequestInstance.request.mockRejectedValueOnce(new Error('Async error'));
 
-    const mockWebSocket = {
-      on: jest.fn(),
-    };
-
-    httpRequestInstance.getWebSocket = jest.fn().mockReturnValue(mockWebSocket);
-
-    const aqm = new AqmReqs();
+    const aqm = new AqmReqs(webSocketManagerInstance);
     const req = aqm.req(() => ({
       url: '/url',
       timeout: 4000,
@@ -233,7 +216,7 @@ describe('AqmReqs', () => {
       notifFail: {
         bind: {
           type: 'RoutingMessage',
-          data: {type: 'AgentConsultFailed'},
+          data: { type: 'AgentConsultFailed' },
         },
         errId: 'Service.aqm.contact.consult',
       },
@@ -259,19 +242,13 @@ describe('AqmReqs', () => {
   it('AqmReqs notif fail', async () => {
     httpRequestInstance.request.mockResolvedValueOnce({
       status: 202,
-      data: {webSocketUrl: 'fake-url'},
+      data: { webSocketUrl: 'fake-url' },
       statusText: 'OK',
       headers: {},
       config: {},
     });
 
-    const mockWebSocket = {
-      on: jest.fn(),
-    };
-
-    httpRequestInstance.getWebSocket = jest.fn().mockReturnValue(mockWebSocket);
-
-    const aqm = new AqmReqs();
+    const aqm = new AqmReqs(webSocketManagerInstance);
     const req = aqm.req(() => ({
       url: '/url',
       timeout: 4000,
@@ -288,7 +265,7 @@ describe('AqmReqs', () => {
       notifFail: {
         bind: {
           type: 'RoutingMessage',
-          data: {type: 'AgentConsultFailed'},
+          data: { type: 'AgentConsultFailed' },
         },
         errId: 'Service.aqm.contact.consult',
       },
@@ -309,13 +286,13 @@ describe('AqmReqs', () => {
         req({}),
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            aqm['onMessage']({
+            webSocketManagerInstance.onMessageSend(JSON.stringify({
               type: 'RoutingMessage',
               data: {
                 type: 'AgentConsultFailed',
                 interactionId: '6920dda3-337a-48b1-b82d-2333392f9907',
               },
-            });
+            }));
             resolve();
           }, 1000);
         }),
