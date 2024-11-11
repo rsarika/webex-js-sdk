@@ -240,4 +240,56 @@ describe('webex.cc', () => {
       );
     });
   });
+
+  describe('stationLogout', () => {
+    it('should logout successfully', async () => {
+      const data = {logoutReason: 'Logout reason'};
+      const response = {};
+
+      const stationLogoutMock = jest
+        .spyOn(webex.cc.services.agent, 'logout')
+        .mockResolvedValue({} as StationLogoutResponse);
+
+      const result = await webex.cc.stationLogout(data);
+
+      expect(stationLogoutMock).toHaveBeenCalledWith({data: data});
+      expect(result).toEqual(response);
+    });
+
+    it('should handle error during stationLogout', async () => {
+      const data = {logoutReason: 'Logout reason'};
+      const error = new Error('Error while performing station logout');
+
+      jest.spyOn(webex.cc.services.agent, 'logout').mockRejectedValue(error);
+
+      await expect(webex.cc.stationLogout(data)).rejects.toThrow(error);
+
+      expect(webex.logger.error).toHaveBeenCalledWith(`file: cc: Station Logout failed: ${error}`);
+    });
+  });
+
+  describe('stationRelogin', () => {
+    it('should relogin successfully', async () => {
+      const response = {};
+
+      const stationLoginMock = jest
+        .spyOn(webex.cc.services.agent, 'reload')
+        .mockResolvedValue({} as StationLoginSuccess);
+
+      const result = await webex.cc.stationReLogin();
+
+      expect(stationLoginMock).toHaveBeenCalled();
+      expect(result).toEqual(response);
+    });
+
+    it('should handle error during relogin', async () => {
+      const error = new Error('Error while performing station relogin');
+
+      jest.spyOn(webex.cc.services.agent, 'reload').mockRejectedValue(error);
+
+      await expect(webex.cc.stationReLogin()).rejects.toThrow(error);
+
+      expect(webex.logger.error).toHaveBeenCalledWith(`file: cc: Station ReLogin failed: ${error}`);
+    });
+  });
 });
