@@ -1,8 +1,8 @@
-/* eslint-disable */
-import { Signal } from '../Signal';
-import { WebexSDK, SubscribeRequest, HTTP_METHODS, WelcomeResponse } from '../../../types';
-import { SUBSCRIBE_API, WCC_API_GATEWAY } from '../../constants';
-import { SubscribeResponse } from '../../config/types';
+import {Signal} from '../Signal';
+import {WebexSDK, SubscribeRequest, HTTP_METHODS, WelcomeResponse} from '../../../types';
+import {SUBSCRIBE_API, WCC_API_GATEWAY} from '../../constants';
+import {SubscribeResponse} from '../../config/types';
+import LoggerProxy from '../../../logger-proxy';
 import workerScript from './keepalive.worker';
 
 export class WebSocketManager {
@@ -18,14 +18,16 @@ export class WebSocketManager {
   private forceCloseWebSocketOnTimeout: boolean;
   private isConnectionLost: boolean;
   private webex: WebexSDK;
-  private welcomePromiseResolve: ((value: WelcomeResponse | PromiseLike<WelcomeResponse>) => void) | null = null;
+  private welcomePromiseResolve:
+    | ((value: WelcomeResponse | PromiseLike<WelcomeResponse>) => void)
+    | null = null;
 
   private keepaliveWorker: Worker;
 
   constructor(options: {webex: WebexSDK}) {
     const {webex} = options;
     this.webex = webex;
-    const { send, signal } = Signal.create.withData<string>();
+    const {send, signal} = Signal.create.withData<string>();
     this.onMessage = signal;
     this.onMessageSend = send;
 
@@ -39,26 +41,26 @@ export class WebSocketManager {
     this.forceCloseWebSocketOnTimeout = false;
     this.isConnectionLost = false;
 
-    const workerScriptBlob = new Blob([workerScript], { type: 'application/javascript' });
+    const workerScriptBlob = new Blob([workerScript], {type: 'application/javascript'});
     this.keepaliveWorker = new Worker(URL.createObjectURL(workerScriptBlob));
   }
 
   async initWebSocket(options: {body: SubscribeRequest}): Promise<WelcomeResponse> {
     const connectionConfig = options.body;
     await this.register(connectionConfig);
+
     return new Promise((resolve, reject) => {
       this.welcomePromiseResolve = resolve;
-      this.connect()
-        .catch((error) => {
-          console.error(`[WebSocketStatus] | Error in connecting Websocket`, error);
-          reject(error);
-        });
+      this.connect().catch((error) => {
+        LoggerProxy.logger.error(`[WebSocketStatus] | Error in connecting Websocke ${error}`);
+        reject(error);
+      });
     });
   }
 
   async reconnect() {
     await this.connect().catch(() => {
-      console.error(`[WebSocketStatus] | Error in connecting Websocket`);
+      LoggerProxy.logger.error(`[WebSocketStatus] | Error in connecting Websocket`);
     });
   }
 
@@ -66,8 +68,10 @@ export class WebSocketManager {
     if (!this.isSocketClosed && this.shouldReconnect) {
       this.shouldReconnect = shouldReconnect;
       this.websocket.close();
-      this.keepaliveWorker.postMessage({ type: 'terminate' });
-      console.error(`[WebSocketStatus] | event=webSocketClose | WebSocket connection closed manually REASON: ${reason}`);
+      this.keepaliveWorker.postMessage({type: 'terminate'});
+      LoggerProxy.logger.error(
+        `[WebSocketStatus] | event=webSocketClose | WebSocket connection closed manually REASON: ${reason}`
+      );
     }
   }
 
@@ -81,7 +85,9 @@ export class WebSocketManager {
       });
       this.url = subscribeResponse.body.webSocketUrl;
     } catch (e) {
-      console.error("Register API Failed", "Request to RoutingNotifs websocket registration API failed", e);
+      LoggerProxy.logger.error(
+        `Register API Failed, Request to RoutingNotifs websocket registration API failed ${e}`
+      );
     }
   }
 
@@ -89,23 +95,28 @@ export class WebSocketManager {
     if (!this.url) {
       return undefined;
     }
-    console.log(`[WebSocketStatus] | event=webSocketConnecting | Connecting to WebSocket: ${this.url}`);
+    LoggerProxy.logger.log(
+      `[WebSocketStatus] | event=webSocketConnecting | Connecting to WebSocket: ${this.url}`
+    );
     this.websocket = new WebSocket(this.url);
+
     return new Promise((resolve, reject) => {
       this.websocket.onopen = () => {
         this.isSocketClosed = false;
         this.shouldReconnect = true;
 
-        this.websocket.send(JSON.stringify({ keepalive: 'true' }));
-        this.keepaliveWorker.onmessage = (keepAliveEvent: { data: any }) => {
+        this.websocket.send(JSON.stringify({keepalive: 'true'}));
+        this.keepaliveWorker.onmessage = (keepAliveEvent: {data: any}) => {
           if (keepAliveEvent?.data?.type === 'keepalive') {
-            this.websocket.send(JSON.stringify({ keepalive: 'true' }));
+            this.websocket.send(JSON.stringify({keepalive: 'true'}));
           }
 
           if (keepAliveEvent?.data?.type === 'closeSocket' && this.isConnectionLost) {
             this.forceCloseWebSocketOnTimeout = true;
             this.close(true, 'WebSocket did not auto close within 16 secs');
-            console.error('[webSocketTimeout] | event=webSocketTimeout | WebSocket connection closed forcefully');
+            LoggerProxy.logger.error(
+              '[webSocketTimeout] | event=webSocketTimeout | WebSocket connection closed forcefully'
+            );
           }
         };
 
@@ -118,7 +129,9 @@ export class WebSocketManager {
       };
 
       this.websocket.onerror = (event: any) => {
-        console.error(`[WebSocketStatus] | event=socketConnectionFailed | WebSocket connection failed`, event);
+        LoggerProxy.logger.error(
+          `[WebSocketStatus] | event=socketConnectionFailed | WebSocket connection failed ${event}`
+        );
         reject();
       };
 
@@ -140,15 +153,18 @@ export class WebSocketManager {
 
         if (eventData.type === 'AGENT_MULTI_LOGIN') {
           this.close(false, 'multiLogin');
-          console.error('[WebSocketStatus] | event=agentMultiLogin | WebSocket connection closed by agent multiLogin');
+          LoggerProxy.logger.error(
+            '[WebSocketStatus] | event=agentMultiLogin | WebSocket connection closed by agent multiLogin'
+          );
         }
       };
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async webSocketOnCloseHandler(event: any) {
     this.isSocketClosed = true;
-    this.keepaliveWorker.postMessage({ type: 'terminate' });
+    this.keepaliveWorker.postMessage({type: 'terminate'});
     if (this.shouldReconnect) {
       this.onSocketCloseSend();
       let issueReason;
@@ -156,10 +172,14 @@ export class WebSocketManager {
         issueReason = 'WebSocket auto close timed out. Forcefully closed websocket.';
       } else {
         const onlineStatus = navigator.onLine;
-        console.info(`[WebSocketStatus] | desktop online status is ${onlineStatus}`);
-        issueReason = !onlineStatus ? 'network issue' : 'missing keepalive from either desktop or notif service';
+        LoggerProxy.logger.info(`[WebSocketStatus] | desktop online status is ${onlineStatus}`);
+        issueReason = !onlineStatus
+          ? 'network issue'
+          : 'missing keepalive from either desktop or notif service';
       }
-      console.error(`[WebSocketStatus] | event=webSocketClose | WebSocket connection closed REASON: ${issueReason}`);
+      LoggerProxy.logger.error(
+        `[WebSocketStatus] | event=webSocketClose | WebSocket connection closed REASON: ${issueReason}`
+      );
       this.forceCloseWebSocketOnTimeout = false;
     }
   }
