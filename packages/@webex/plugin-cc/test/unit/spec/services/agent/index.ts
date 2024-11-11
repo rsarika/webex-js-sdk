@@ -32,20 +32,25 @@ describe('AQM routing agent', () => {
   it('logout', async () => {
     const req = agent.logout({ data: { logoutReason: 'User requested logout' } }).catch((e: any) => e);
     expect(req).toBeDefined();
+    expect(reqSpy).toHaveBeenCalled();
   });
 
   it('reload', async () => {
-    const req = agent.reload().catch((e: any) => e);
+    const reqSpy = jest.spyOn(fakeAqm, 'reqEmpty');
+    const req = await agent.reload();
     expect(req).toBeDefined();
+    expect(reqSpy).toHaveBeenCalled();
   });
 
   it('stationLogin', async () => {
     const req = agent.stationLogin({ data: {} as any }).catch((e: any) => e);
     expect(req).toBeDefined();
+    expect(reqSpy).toHaveBeenCalled();
   });
 
   it('stateChange', async () => {
     const req = agent.stateChange({ data: {} as any }).catch((e: any) => e);
     expect(req).toBeDefined();
+    expect(reqSpy).toHaveBeenCalled();
   });
 });

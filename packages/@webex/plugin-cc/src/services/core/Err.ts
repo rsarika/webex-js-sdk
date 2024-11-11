@@ -1,7 +1,6 @@
 import {WebexRequestPayload} from '../../types';
 import {Failure} from './GlobalTypes';
 
-/* eslint-disable @typescript-eslint/no-namespace */
 export type ErrDetails = {status: number; type: string; trackingId: string};
 
 export type AgentErrorIds =
@@ -25,6 +24,34 @@ export interface Ids {
   'Service.aqm.agent': AgentErrorIds;
   'Service.aqm.reqs': ReqError;
 }
+
+export type IdsGlobal =
+  | 'system' // to handle errors that was not created by 'new Err.WithId()'
+  | 'handle'
+  | 'fallback';
+
+export type IdsSub = Ids[keyof Ids];
+
+export type IdsMessage = IdsGlobal | keyof Ids | Exclude<IdsSub, object>;
+
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I
+) => void
+  ? I
+  : never;
+
+export type FlattenUnion<T> = {
+  [K in keyof UnionToIntersection<T>]: K extends keyof T
+    ? T[K] extends any[]
+      ? T[K]
+      : T[K] extends object
+      ? FlattenUnion<T[K]>
+      : T[K]
+    : UnionToIntersection<T>[K];
+};
+export type IdsDetailsType = FlattenUnion<Exclude<IdsSub, string>>;
+
+export type IdsDetails = keyof IdsDetailsType;
 
 export type Id = IdsMessage | IdsDetails;
 
@@ -69,31 +96,3 @@ export class Details<T extends IdsDetails> extends Error {
   // Marker to distinct Err class from other errors
   private isErr = 'yes';
 }
-
-// --------------------
-
-export type IdsGlobal =
-  | 'system' // to handle errors that was not created by 'new Err.WithId()'
-  | 'handle'
-  | 'fallback';
-
-export type IdsSub = Ids[keyof Ids];
-
-export type IdsMessage = IdsGlobal | keyof Ids | Exclude<IdsSub, object>;
-export type IdsDetails = keyof IdsDetailsType;
-export type IdsDetailsType = FlattenUnion<Exclude<IdsSub, string>>;
-
-export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I
-) => void
-  ? I
-  : never;
-export type FlattenUnion<T> = {
-  [K in keyof UnionToIntersection<T>]: K extends keyof T
-    ? T[K] extends any[]
-      ? T[K]
-      : T[K] extends object
-      ? FlattenUnion<T[K]>
-      : T[K]
-    : UnionToIntersection<T>[K];
-};

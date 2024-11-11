@@ -1,11 +1,11 @@
 import 'jsdom-global/register';
-import {LoginOption, WebexSDK} from '../../../src/types';
+import {LoginOption, StationLogoutResponse, WebexSDK} from '../../../src/types';
 import WebSocketManager from '../../../src/services/core/WebSocket/WebSocketManager';
 import WebCallingService from '../../../src/WebCallingService';
 import ContactCenter from '../../../src/cc';
 import MockWebex from '@webex/test-helper-mock-webex';
 import {StationLoginSuccess} from '../../../src/services/agent/types';
-import {IAgentProfile} from '../../../src/features/types';
+import {IAgentProfile} from '../../../src/types';
 import {AGENT, WEB_RTC_PREFIX} from '../../../src/services/constants';
 import Services from '../../../src/services';
 import config from '../../../src/config';
@@ -69,6 +69,8 @@ describe('webex.cc', () => {
     const mockServicesInstance = {
       agent: {
         stationLogin: jest.fn(),
+        logout: jest.fn(),
+        reload: jest.fn(),
       },
     };
     (Services.getInstance as jest.Mock).mockReturnValue(mockServicesInstance);

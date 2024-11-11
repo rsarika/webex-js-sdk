@@ -1,4 +1,4 @@
-import {LoginOption} from '../../types';
+import {AuxCode} from '../../types';
 
 type Enum<T extends Record<string, unknown>> = T[keyof T];
 
@@ -88,47 +88,6 @@ export type DesktopProfileResponse = {
   idleCodes: string[];
 };
 
-/**
- * Represents the request to a AgentLogin
- *
- * @public
- */
-export type AgentLogin = {
-  /**
-   * A dialNumber field contains the number to dial such as a route point or extension.
-   */
-
-  dialNumber?: string;
-
-  /**
-   * The unique ID representing a team of users.
-   */
-
-  teamId: string;
-
-  /**
-   * The loginOption field contains the type of login.
-   */
-
-  loginOption: LoginOption;
-};
-
-export type UserStationLogin = {
-  dialNumber?: string | null;
-  dn?: string | null;
-  teamId: string | null;
-  teamName?: string | null;
-  roles?: Array<string>;
-  siteId?: string;
-  usesOtherDN?: boolean;
-  skillProfileId?: string;
-  auxCodeId?: string;
-  isExtension?: boolean;
-  deviceType?: LoginOption;
-  deviceId: string | null;
-  isEmergencyModalAlreadyDisplayed?: boolean;
-};
-
 export type SubscribeResponse = {
   statusCode: number;
   body: {
@@ -136,66 +95,6 @@ export type SubscribeResponse = {
     subscriptionId?: string;
   };
   message: string | null;
-};
-
-/**
- * Represents the response from getListOfTeams method.
- *
- * @public
- */
-export type Team = {
-  /**
-   * ID of the team.
-   */
-  id: string;
-
-  /**
-   *  Name of the Team.
-   */
-  name: string;
-};
-
-/**
- * Represents AuxCode.
- * @public
- */
-
-export type AuxCode = {
-  /**
-   * ID of the Auxiliary Code.
-   */
-  id: string;
-
-  /**
-   * Indicates whether the auxiliary code is active or not active.
-   */
-  active: boolean;
-
-  /**
-   * Indicates whether this is the default code (true) or not (false).
-   */
-  defaultCode: boolean;
-
-  /**
-   * Indicates whether this is the system default code (true) or not (false).
-   */
-  isSystemCode: boolean;
-
-  /**
-   * A short description indicating the context of the code.
-   */
-  description: string;
-
-  /**
-   * Name for the Auxiliary Code.
-   */
-  name: string;
-
-  /**
-   * Indicates the work type associated with this code..
-   */
-
-  workTypeCode: string;
 };
 
 /**

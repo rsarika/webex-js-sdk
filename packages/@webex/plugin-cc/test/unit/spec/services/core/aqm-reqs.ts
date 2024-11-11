@@ -1,4 +1,5 @@
-import { AqmReqs } from '../../../../../src/services/core/aqm-reqs';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {AqmReqs} from '../../../../../src/services/core/aqm-reqs';
 import HttpRequest from '../../../../../src/services/core/HttpRequest';
 import { WebSocketManager } from '../../../../../src/services/core/WebSocket/WebSocketManager';
 import { Signal } from '../../../../../src/services/core/Signal';
