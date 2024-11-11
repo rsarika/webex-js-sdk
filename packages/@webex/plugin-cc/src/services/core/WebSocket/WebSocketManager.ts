@@ -1,5 +1,4 @@
 /* eslint-disable */
-// Temporarily adding the above until a fix for the blob can be found
 import { Signal } from '../Signal';
 import { WebexSDK, SubscribeRequest, HTTP_METHODS, WelcomeResponse } from '../../../types';
 import { SUBSCRIBE_API, WCC_API_GATEWAY } from '../../constants';
