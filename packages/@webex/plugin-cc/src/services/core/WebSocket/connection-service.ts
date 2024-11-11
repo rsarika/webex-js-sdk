@@ -1,6 +1,11 @@
 import {Signal} from '../Signal';
 import {WebSocketManager} from './WebSocketManager';
 import LoggerProxy from '../../../logger-proxy';
+import {
+  LOST_CONNECTION_RECOVERY_TIMEOUT,
+  WS_DISCONNECT_ALLOWED,
+  CONNECTIVITY_CHECK_INTERVAL,
+} from '../config';
 
 type ConnectionLostDetails = {
   isConnectionLost: boolean;
@@ -12,10 +17,6 @@ type ConnectionLostDetails = {
 type ConnectionProp = {
   lostConnectionRecoveryTimeout: number;
 };
-
-const LOST_CONNECTION_RECOVERY_TIMEOUT = 20000; // 20 seconds
-const WS_DISCONNECT_ALLOWED = 8000; // 8 seconds
-const CONNECTIVITY_CHECK_INTERVAL = 5000; // 5 seconds
 
 export class ConnectionService {
   private connectionProp: ConnectionProp = {

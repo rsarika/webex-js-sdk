@@ -4,6 +4,7 @@ import {SUBSCRIBE_API, WCC_API_GATEWAY} from '../../constants';
 import {SubscribeResponse} from '../../config/types';
 import LoggerProxy from '../../../logger-proxy';
 import workerScript from './keepalive.worker';
+import {KEEPALIVE_WORKER_INTERVAL, CLOSE_SOCKET_TIMEOUT} from '../config';
 
 export class WebSocketManager {
   readonly onMessage: Signal.WithData<string>;
@@ -52,7 +53,7 @@ export class WebSocketManager {
     return new Promise((resolve, reject) => {
       this.welcomePromiseResolve = resolve;
       this.connect().catch((error) => {
-        LoggerProxy.logger.error(`[WebSocketStatus] | Error in connecting Websocke ${error}`);
+        LoggerProxy.logger.error(`[WebSocketStatus] | Error in connecting Websocket ${error}`);
         reject(error);
       });
     });
@@ -122,9 +123,9 @@ export class WebSocketManager {
 
         this.keepaliveWorker.postMessage({
           type: 'start',
-          intervalDuration: 4000, // Keepalive interval
+          intervalDuration: KEEPALIVE_WORKER_INTERVAL, // Keepalive interval
           isSocketClosed: this.isSocketClosed,
-          closeSocketTimeout: 16000, // Close socket timeout
+          closeSocketTimeout: CLOSE_SOCKET_TIMEOUT, // Close socket timeout
         });
       };
 
