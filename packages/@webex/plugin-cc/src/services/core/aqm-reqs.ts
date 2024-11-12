@@ -1,32 +1,14 @@
-import {Signal} from './Signal'; // TODO: remove and use Event Emitters after Adhwaith PR is merged
 import {Msg} from './GlobalTypes';
 import * as Err from './Err';
 import {HTTP_METHODS, WebexRequestPayload} from '../../types';
 import {WebSocketManager} from './WebSocket/WebSocketManager';
 import HttpRequest from './HttpRequest';
 import LoggerProxy from '../../logger-proxy';
-import {
-  CbRes,
-  Conf,
-  ConfEmpty,
-  EvtConf,
-  EvtRes,
-  Pending,
-  Req,
-  Res,
-  ResEmpty,
-  Timeout,
-} from './types';
+import {CbRes, Conf, ConfEmpty, Pending, Req, Res, ResEmpty} from './types';
+import {TIMEOUT_REQ} from './constants';
 
-export const TIMEOUT_REQ = 20000;
-const TIMEOUT_EVT = TIMEOUT_REQ;
-
-export class AqmReqs {
+export default class AqmReqs {
   private pendingRequests: Record<string, Pending> = {};
-  private pendingEvents: Record<string, Pending> = {};
-  // pendingNotifCancelrequest is used for handling request cancel events based on another action. When a promise can be resolved using multiple events.
-  // example consult and cancelCtq(end in new API)  when we cancel consult to ques we need to resolve both consul and cancel ctq promises
-  // #CX-14258 : Consult to DN failing if Consult to Queue is cancelled in the first try #2344
   private pendingNotifCancelrequest: Record<string, Pending> = {};
   private webSocketManager: WebSocketManager;
   private httpRequest: HttpRequest;
@@ -43,47 +25,6 @@ export class AqmReqs {
 
   reqEmpty<TRes, TErr>(c: ConfEmpty<TRes, TErr>): ResEmpty<TRes> {
     return (cbRes?: CbRes<TRes>) => this.makeAPIRequest(c(), cbRes);
-  }
-
-  evt<T>(p: EvtConf<T>): EvtRes<T> {
-    const {send, signal} = Signal.create.withData<T>();
-
-    const k = this.bindPrint(p.bind);
-    if (this.pendingEvents[k]) {
-      throw new Err.Details('Service.aqm.reqs.PendingEvent', {key: k});
-    }
-    this.pendingEvents[k] = {
-      check: (msg: Msg) => this.bindCheck(p.bind, msg),
-      handle: (msg: any) => send(msg),
-    };
-
-    // add listenOnceAsync
-    const evt: EvtRes<T> = signal as any;
-    evt.listenOnceAsync = (promise?: {resolveIf?: (msg: T) => boolean; timeout?: Timeout}) => {
-      return new Promise<T>((resolve, reject) => {
-        const {stopListen} = signal.listen((msg) => {
-          if (promise?.resolveIf ? promise.resolveIf(msg) : true) {
-            stopListen();
-            resolve(msg);
-          }
-        });
-
-        if (promise?.timeout === 'disabled') {
-          return;
-        }
-
-        const ms =
-          promise && promise.timeout && promise.timeout > 0 ? promise.timeout : TIMEOUT_EVT;
-        setTimeout(() => {
-          const isStopped = stopListen();
-          if (isStopped) {
-            reject(new Err.Details('Service.aqm.reqs.TimeoutEvent', {key: k}));
-          }
-        }, ms);
-      });
-    };
-
-    return evt;
   }
 
   private async makeAPIRequest<TRes, TErr>(c: Req<TRes, TErr>, cbRes?: CbRes<TRes>): Promise<TRes> {
@@ -163,7 +104,7 @@ export class AqmReqs {
           },
         };
       }
-      let resAxios: WebexRequestPayload | null = null;
+      let response: WebexRequestPayload | null = null;
       this.httpRequest
         .request({
           service: c.host ?? '',
@@ -174,21 +115,21 @@ export class AqmReqs {
           body: c.data,
         })
         .then((res: any) => {
-          resAxios = res;
+          response = res;
           if (cbRes) {
             cbRes(res);
           }
         })
-        .catch((axiosErr: WebexRequestPayload) => {
+        .catch((error: WebexRequestPayload) => {
           clear();
-          if (axiosErr?.headers) {
-            axiosErr.headers.Authorization = '*';
+          if (error?.headers) {
+            error.headers.Authorization = '*';
           }
-          if (axiosErr?.headers) {
-            axiosErr.headers.Authorization = '*';
+          if (error?.headers) {
+            error.headers.Authorization = '*';
           }
           if (typeof c.err === 'function') {
-            reject(c.err(axiosErr));
+            reject(c.err(error));
           } else if (typeof c.err === 'string') {
             reject(new Err.Message(c.err));
           } else {
@@ -203,14 +144,14 @@ export class AqmReqs {
               return;
             }
             clear();
-            if (resAxios?.headers) {
-              resAxios.headers.Authorization = '*';
+            if (response?.headers) {
+              response.headers.Authorization = '*';
             }
-            LoggerProxy.logger.error(`Routing request timeout${keySuccess}${resAxios!}${c.url}`);
+            LoggerProxy.logger.error(`Routing request timeout${keySuccess}${response!}${c.url}`);
             reject(
               new Err.Details('Service.aqm.reqs.Timeout', {
                 key: keySuccess,
-                resAxios: resAxios!,
+                response: response!,
               })
             );
           },
@@ -296,15 +237,7 @@ export class AqmReqs {
       }
     }
 
-    const kEvt = Object.keys(this.pendingEvents);
-    for (const thisEvt of kEvt) {
-      const evt = this.pendingEvents[thisEvt];
-      if (evt.check(event)) {
-        evt.handle(event);
-        isHandled = true;
-        break;
-      }
-    }
+    // TODO:  add event emitter for unhandled events to replicate event.listen or .on
 
     if (!isHandled) {
       LoggerProxy.logger.info(

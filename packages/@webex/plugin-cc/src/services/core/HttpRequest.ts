@@ -1,4 +1,4 @@
-import {WebexSDK, HTTP_METHODS, IHttpResponse} from '../../types';
+import {WebexSDK, HTTP_METHODS, IHttpResponse, RequestBody} from '../../types';
 
 class HttpRequest {
   private webex: WebexSDK;
@@ -21,7 +21,7 @@ class HttpRequest {
     service: string;
     resource: string;
     method: HTTP_METHODS;
-    body?: object;
+    body?: RequestBody;
   }): Promise<IHttpResponse> {
     const {service, resource, method, body} = options;
 

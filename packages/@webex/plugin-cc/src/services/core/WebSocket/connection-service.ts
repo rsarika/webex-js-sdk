@@ -5,7 +5,7 @@ import {
   LOST_CONNECTION_RECOVERY_TIMEOUT,
   WS_DISCONNECT_ALLOWED,
   CONNECTIVITY_CHECK_INTERVAL,
-} from '../config';
+} from '../constants';
 
 type ConnectionLostDetails = {
   isConnectionLost: boolean;

@@ -1,5 +1,5 @@
 import routingAgent from '../../../../../src/services/agent';
-import {AqmReqs} from '../../../../../src/services/core/aqm-reqs';
+import AqmReqs from '../../../../../src/services/core/aqm-reqs';
 import * as Utils from '../../../../../src/services/core/Utils';
 
 jest.mock('../../../../../src/services/core/Utils', () => ({
@@ -7,13 +7,7 @@ jest.mock('../../../../../src/services/core/Utils', () => ({
   getRoutingHost: jest.fn(),
 }));
 
-jest.mock('../../../../../src/services/core/aqm-reqs', () => ({
-  AqmReqs: jest.fn().mockImplementation(() => ({
-    reqEmpty: jest.fn().mockImplementation((fn) => fn),
-    req: jest.fn().mockImplementation((fn) => fn),
-    evt: jest.fn().mockImplementation((fn) => fn),
-  })),
-}));
+jest.mock('../../../../../src/services/core/aqm-reqs');
 
 describe('AQM routing agent', () => {
   let fakeAqm: jest.Mocked<AqmReqs>;
@@ -29,7 +23,6 @@ describe('AQM routing agent', () => {
     fakeAqm = new AqmReqs() as jest.Mocked<AqmReqs>;
     fakeAqm.reqEmpty = jest.fn().mockImplementation((fn) => fn);
     fakeAqm.req = jest.fn().mockImplementation((fn) => fn);
-    fakeAqm.evt = jest.fn().mockImplementation((fn) => fn);
 
     agent = routingAgent(fakeAqm);
   });
@@ -57,7 +50,7 @@ describe('AQM routing agent', () => {
   });
 
   it('stateChange', async () => {
-    const reqSpy = jest.spyOn(fakeAqm, 'evt');
+    const reqSpy = jest.spyOn(fakeAqm, 'req');
     const req = await agent.stateChange({data: {} as any});
     expect(req).toBeDefined();
     expect(reqSpy).toHaveBeenCalled();

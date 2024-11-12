@@ -3,7 +3,7 @@ import {SUBSCRIBE_API, WCC_API_GATEWAY} from '../../constants';
 import {SubscribeResponse} from '../../config/types';
 import LoggerProxy from '../../../logger-proxy';
 import workerScript from './keepalive.worker';
-import {KEEPALIVE_WORKER_INTERVAL, CLOSE_SOCKET_TIMEOUT} from '../config';
+import {KEEPALIVE_WORKER_INTERVAL, CLOSE_SOCKET_TIMEOUT} from '../constants';
 
 export class WebSocketManager extends EventTarget {
   private websocket: WebSocket;

@@ -4,7 +4,6 @@ import {
   CCPluginConfig,
   IContactCenter,
   WebexSDK,
-  SubscribeRequest,
   LoginOption,
   WelcomeEvent,
   IAgentProfile,
@@ -12,16 +11,18 @@ import {
   StationLoginResponse,
   StationLogoutResponse,
   StationReLoginResponse,
+  SubscribeRequest,
 } from './types';
-import {READY, CC_FILE} from './constants';
+import {READY, CC_FILE, EMPTY_STRING} from './constants';
 import HttpRequest from './services/core/HttpRequest';
-import WebCallingService from './WebCallingService';
+import WebCallingService from './services/WebCallingService';
 import {AGENT, WEB_RTC_PREFIX} from './services/constants';
 import {WebSocketManager} from './services/core/WebSocket/WebSocketManager';
 import Services from './services';
 import LoggerProxy from './logger-proxy';
 import {ConnectionService} from './services/core/WebSocket/connection-service';
-import * as Agent from './services/agent/types';
+import {Logout} from './services/agent/types';
+import {getErrorDetails} from './services/core/Utils';
 
 export default class ContactCenter extends WebexPlugin implements IContactCenter {
   namespace = 'cc';
@@ -75,7 +76,7 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
     } catch (error) {
       this.$webex.logger.error(`file: ${CC_FILE}: Error during register: ${error}`);
 
-      return Promise.reject(new Error('Error while performing register`', error));
+      throw error;
     }
   }
 
@@ -125,10 +126,11 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
           isExtension: data.loginOption === LoginOption.EXTENSION,
           deviceId: this.getDeviceId(data.loginOption, data.dialNumber),
           roles: [AGENT],
-          teamName: '',
-          siteId: '',
+          // TODO: The public API should not have the following properties so filling them with empty values for now. If needed, we can add them in the future.
+          teamName: EMPTY_STRING,
+          siteId: EMPTY_STRING,
           usesOtherDN: false,
-          auxCodeId: '',
+          auxCodeId: EMPTY_STRING,
         },
       });
 
@@ -140,8 +142,7 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
 
       return loginResponse;
     } catch (error) {
-      this.$webex.logger.log(`file: ${CC_FILE}: Station Login failed: ${error}`);
-      throw new Error(error.details?.data?.reason ?? 'Error while performing station login');
+      throw getErrorDetails(error, 'stationLogin');
     }
   }
 
@@ -150,7 +151,7 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
    * @returns Promise<StationLogoutResponse>
    * @throws Error
    */
-  public async stationLogout(data: Agent.Logout): Promise<StationLogoutResponse> {
+  public async stationLogout(data: Logout): Promise<StationLogoutResponse> {
     try {
       const logoutResponse = this.services.agent.logout({
         data,
@@ -164,19 +165,21 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
 
       return logoutResponse;
     } catch (error) {
-      this.$webex.logger.error(`file: ${CC_FILE}: Station Logout failed: ${error}`);
-      throw new Error(error.details?.data?.reason ?? 'Error while performing station logout');
+      throw getErrorDetails(error, 'stationLogout');
     }
   }
 
+  /* This is used for agent relogin.
+   * @returns Promise<StationReLoginResponse>
+   * @throws Error
+   */
   public async stationReLogin(): Promise<StationReLoginResponse> {
     try {
       const reLoginResponse = await this.services.agent.reload();
 
       return reLoginResponse;
     } catch (error) {
-      this.$webex.logger.error(`file: ${CC_FILE}: Station ReLogin failed: ${error}`);
-      throw new Error(error.details?.data?.reason ?? 'Error while performing station relogin');
+      throw getErrorDetails(error, 'stationReLogin');
     }
   }
 

@@ -1,5 +1,5 @@
 import routingAgent from './agent';
-import {AqmReqs} from './core/aqm-reqs';
+import AqmReqs from './core/aqm-reqs';
 import {WebSocketManager} from './core/WebSocket/WebSocketManager';
 
 export default class Services {

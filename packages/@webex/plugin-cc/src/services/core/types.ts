@@ -1,7 +1,6 @@
-import {HTTP_METHODS, WebexRequestPayload} from '../../types';
+import {HTTP_METHODS, RequestBody, WebexRequestPayload} from '../../types';
 import * as Err from './Err';
 import {Msg} from './GlobalTypes';
-import {Signal} from './Signal';
 
 export type Pending = {
   check: (msg: Msg) => boolean;
@@ -36,7 +35,7 @@ export type Req<TRes, TErr> = {
         bind: Bind;
         errId: Err.IdsDetails;
       };
-  data?: any;
+  data?: RequestBody;
   headers?: Record<string, string>;
   timeout?: Timeout;
   notifCancel?: {bind: Bind; msg: TRes};
@@ -47,9 +46,3 @@ export type ConfEmpty<TRes, TErr> = () => Req<TRes, TErr>;
 export type Res<TRes, TReq> = (p: TReq, cbRes?: CbRes<TRes>) => Promise<TRes>;
 export type ResEmpty<TRes> = (cbRes?: CbRes<TRes>) => Promise<TRes>;
 export type CbRes<TRes> = (res: any) => void | TRes;
-
-// evt
-export type EvtConf<T> = {bind: Bind; msg: T};
-export type EvtRes<T> = Signal.WithData<T> & {
-  listenOnceAsync: (p?: {resolveIf?: (msg: T) => boolean; timeout?: Timeout}) => Promise<T>;
-};
