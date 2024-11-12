@@ -1,5 +1,5 @@
-import {Signal} from '../Signal';
 import {WebSocketManager} from './WebSocketManager';
+import {SubscribeRequest} from '../../../types';
 import LoggerProxy from '../../../logger-proxy';
 import {
   LOST_CONNECTION_RECOVERY_TIMEOUT,
@@ -18,7 +18,7 @@ type ConnectionProp = {
   lostConnectionRecoveryTimeout: number;
 };
 
-export class ConnectionService {
+export class ConnectionService extends EventTarget {
   private connectionProp: ConnectionProp = {
     lostConnectionRecoveryTimeout: LOST_CONNECTION_RECOVERY_TIMEOUT,
   };
@@ -32,37 +32,38 @@ export class ConnectionService {
   private isKeepAlive: boolean;
   private reconnectInterval: ReturnType<typeof setInterval>;
   private webSocketManager: WebSocketManager;
-  private readonly onConnectionLostSend: Signal.Send<ConnectionLostDetails>;
-  public readonly onConnectionLost: Signal.WithData<ConnectionLostDetails>;
+  private subscribeRequest: SubscribeRequest;
 
-  constructor(webSocketManager: WebSocketManager) {
-    const {send, signal} = Signal.create.withData<ConnectionLostDetails>();
-    this.onConnectionLost = signal;
-    this.onConnectionLostSend = send;
+  constructor(webSocketManager: WebSocketManager, subscribeRequest: SubscribeRequest) {
+    super();
     this.webSocketManager = webSocketManager;
+    this.subscribeRequest = subscribeRequest;
 
     this.isConnectionLost = false;
     this.isRestoreFailed = false;
     this.isSocketReconnected = false;
     this.isKeepAlive = false;
 
-    this.webSocketManager.onMessage.listen(this.onPing);
-    this.webSocketManager.onSocketClose.listen(this.onSocketClose);
+    this.webSocketManager.addEventListener('message', this.onPing);
+    this.webSocketManager.addEventListener('socketClose', this.onSocketClose);
   }
 
-  private dispatchEvent(socketReconnected = false): void {
-    this.onConnectionLostSend({
-      isConnectionLost: this.isConnectionLost,
-      isRestoreFailed: this.isRestoreFailed,
-      isSocketReconnected:
-        !this.webSocketManager.isSocketClosed && (socketReconnected || this.isSocketReconnected),
-      isKeepAlive: this.isKeepAlive,
+  private dispatchConnectionEvent(socketReconnected = false): void {
+    const event = new CustomEvent<ConnectionLostDetails>('connectionLost', {
+      detail: {
+        isConnectionLost: this.isConnectionLost,
+        isRestoreFailed: this.isRestoreFailed,
+        isSocketReconnected:
+          !this.webSocketManager.isSocketClosed && (socketReconnected || this.isSocketReconnected),
+        isKeepAlive: this.isKeepAlive,
+      },
     });
+    this.dispatchEvent(event);
   }
 
   private handleConnectionLost = (): void => {
     this.isConnectionLost = true;
-    this.dispatchEvent();
+    this.dispatchConnectionEvent();
   };
 
   private clearTimerOnRestoreFailed = async () => {
@@ -74,7 +75,7 @@ export class ConnectionService {
   private handleRestoreFailed = async () => {
     this.isRestoreFailed = true;
     this.webSocketManager.shouldReconnect = false;
-    this.dispatchEvent();
+    this.dispatchConnectionEvent();
     await this.clearTimerOnRestoreFailed();
   };
 
@@ -88,15 +89,16 @@ export class ConnectionService {
     this.connectionProp = prop;
   }
 
-  private onPing = (msg: string): void => {
-    const event = JSON.parse(msg);
+  private onPing = (event: Event): void => {
+    const msg = (event as CustomEvent<string>).detail;
+    const parsedEvent = JSON.parse(msg);
     if (this.reconnectingTimer) {
       clearTimeout(this.reconnectingTimer);
     }
     if (this.restoreTimer) {
       clearTimeout(this.restoreTimer);
     }
-    this.isKeepAlive = event.keepalive === 'true';
+    this.isKeepAlive = parsedEvent.keepalive === 'true';
     const shouldUpdateConnectionData =
       this.isKeepAlive || (this.isConnectionLost && !this.isRestoreFailed);
     const shouldDispatchEvent =
@@ -108,18 +110,23 @@ export class ConnectionService {
     }
 
     if (shouldDispatchEvent) {
-      this.dispatchEvent();
+      this.dispatchConnectionEvent();
     } else if (shouldDispatchEventWithReconnect) {
-      this.dispatchEvent(true);
+      this.dispatchConnectionEvent(true);
     }
+
+    this.reconnectingTimer = setTimeout(this.handleConnectionLost, this.wsDisconnectAllowed);
+    this.restoreTimer = setTimeout(
+      this.handleRestoreFailed,
+      this.connectionProp && this.connectionProp.lostConnectionRecoveryTimeout
+    );
   };
 
   private handleSocketClose = async (): Promise<void> => {
     LoggerProxy.logger.info(`event=socketConnectionRetry | Trying to reconnect to notifs socket`);
     const onlineStatus = navigator.onLine;
     if (onlineStatus) {
-      await this.webSocketManager.reconnect();
-      // eslint-disable-next-line no-console
+      await this.webSocketManager.initWebSocket({body: this.subscribeRequest});
       await this.clearTimerOnRestoreFailed();
       this.isSocketReconnected = true;
     } else {

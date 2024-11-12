@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {AqmReqs} from '../../../../../src/services/core/aqm-reqs';
+import { AqmReqs } from '../../../../../src/services/core/aqm-reqs';
 import HttpRequest from '../../../../../src/services/core/HttpRequest';
 import { WebSocketManager } from '../../../../../src/services/core/WebSocket/WebSocketManager';
-import { Signal } from '../../../../../src/services/core/Signal';
 
 jest.mock('../../../../../src/services/core/HttpRequest');
 jest.mock('../../../../../src/logger-proxy', () => ({
@@ -18,6 +17,18 @@ jest.mock('../../../../../src/logger-proxy', () => ({
 }));
 jest.mock('../../../../../src/services/core/WebSocket/WebSocketManager');
 
+// Mock CustomEvent class
+class MockCustomEvent<T> extends Event {
+  detail: T;
+
+  constructor(event: string, params: { detail: T }) {
+    super(event);
+    this.detail = params.detail;
+  }
+}
+
+global.CustomEvent = MockCustomEvent as any;
+
 const mockHttpRequest = HttpRequest as jest.MockedClass<typeof HttpRequest>;
 const mockWebSocketManager = WebSocketManager as jest.MockedClass<typeof WebSocketManager>;
 
@@ -31,9 +42,11 @@ describe('AqmReqs', () => {
     mockHttpRequest.getInstance = jest.fn().mockReturnValue(httpRequestInstance);
 
     webSocketManagerInstance = new WebSocketManager({ webex: {} as any }) as jest.Mocked<WebSocketManager>;
-    const { send, signal } = Signal.create.withData<string>();
-    webSocketManagerInstance.onMessage = signal;
-    webSocketManagerInstance.onMessageSend = send;
+
+    // Mock the addEventListener and dispatchEvent methods
+    webSocketManagerInstance.addEventListener = jest.fn();
+    webSocketManagerInstance.dispatchEvent = jest.fn();
+
     mockWebSocketManager.mockImplementation(() => webSocketManagerInstance);
   });
 
@@ -120,12 +133,14 @@ describe('AqmReqs', () => {
         req({}),
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            webSocketManagerInstance.onMessageSend(JSON.stringify({
-              type: 'RoutingMessage',
-              data: {
-                type: 'AgentCtqCancelled',
-                interactionId: '6920dda3-337a-48b1-b82d-2333392f9905',
-              },
+            webSocketManagerInstance.dispatchEvent(new CustomEvent('message', {
+              detail: JSON.stringify({
+                type: 'RoutingMessage',
+                data: {
+                  type: 'AgentCtqCancelled',
+                  interactionId: '6920dda3-337a-48b1-b82d-2333392f9905',
+                },
+              }),
             }));
             resolve();
           }, 1000);
@@ -182,12 +197,14 @@ describe('AqmReqs', () => {
         req({}),
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            webSocketManagerInstance.onMessageSend(JSON.stringify({
-              type: 'RoutingMessage',
-              data: {
-                type: 'AgentConsultCreated',
-                interactionId: '6920dda3-337a-48b1-b82d-2333392f9906',
-              },
+            webSocketManagerInstance.dispatchEvent(new CustomEvent('message', {
+              detail: JSON.stringify({
+                type: 'RoutingMessage',
+                data: {
+                  type: 'AgentConsultCreated',
+                  interactionId: '6920dda3-337a-48b1-b82d-2333392f9906',
+                },
+              }),
             }));
             resolve();
           }, 1000);
@@ -287,12 +304,14 @@ describe('AqmReqs', () => {
         req({}),
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            webSocketManagerInstance.onMessageSend(JSON.stringify({
-              type: 'RoutingMessage',
-              data: {
-                type: 'AgentConsultFailed',
-                interactionId: '6920dda3-337a-48b1-b82d-2333392f9907',
-              },
+            webSocketManagerInstance.dispatchEvent(new CustomEvent('message', {
+              detail: JSON.stringify({
+                type: 'RoutingMessage',
+                data: {
+                  type: 'AgentConsultFailed',
+                  interactionId: '6920dda3-337a-48b1-b82d-2333392f9907',
+                },
+              }),
             }));
             resolve();
           }, 1000);

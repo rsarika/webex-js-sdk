@@ -53,7 +53,10 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
 
       this.webSocketManager = new WebSocketManager({webex: this.$webex});
 
-      this.connectionService = new ConnectionService(this.webSocketManager);
+      this.connectionService = new ConnectionService(
+        this.webSocketManager,
+        this.getConnectionConfig()
+      );
 
       this.services = Services.getInstance(this.webSocketManager);
 
@@ -83,17 +86,10 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
    * @private
    */
   private async connectWebsocket() {
-    const connectionConfig: SubscribeRequest = {
-      force: this.$config?.force ?? true,
-      isKeepAliveEnabled: this.$config?.isKeepAliveEnabled ?? false,
-      clientType: this.$config?.clientType ?? 'WebexCCSDK',
-      allowMultiLogin: this.$config?.allowMultiLogin ?? true,
-    };
-
     try {
       return this.webSocketManager
         .initWebSocket({
-          body: connectionConfig,
+          body: this.getConnectionConfig(),
         })
         .then(async (data: WelcomeEvent) => {
           const agentId = data.agentId;
@@ -190,5 +186,17 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
     }
 
     return WEB_RTC_PREFIX + this.agentConfig.agentId;
+  }
+
+  /**
+   * This method returns the connection configuration.
+   */
+  private getConnectionConfig(): SubscribeRequest {
+    return {
+      force: this.$config?.force ?? true,
+      isKeepAliveEnabled: this.$config?.isKeepAliveEnabled ?? false,
+      clientType: this.$config?.clientType ?? 'WebexCCSDK',
+      allowMultiLogin: this.$config?.allowMultiLogin ?? true,
+    };
   }
 }

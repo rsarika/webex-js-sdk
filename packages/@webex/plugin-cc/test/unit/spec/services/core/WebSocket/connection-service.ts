@@ -1,26 +1,38 @@
 import { ConnectionService } from '../../../../../../src/services/core/WebSocket/connection-service';
 import { WebSocketManager } from '../../../../../../src/services/core/WebSocket/WebSocketManager';
-import { Signal } from '../../../../../../src/services/core/Signal';
+import { SubscribeRequest } from '../../../../../../src/types';
 
 jest.mock('../../../../../../src/services/core/WebSocket/WebSocketManager');
+
+// Mock CustomEvent class
+class MockCustomEvent<T> extends Event {
+  detail: T;
+
+  constructor(event: string, params: { detail: T }) {
+    super(event);
+    this.detail = params.detail;
+  }
+}
+
+global.CustomEvent = MockCustomEvent as any;
 
 describe('ConnectionService', () => {
   let connectionService: ConnectionService;
   let mockWebSocketManager: jest.Mocked<WebSocketManager>;
+  const mockSubscribeRequest: SubscribeRequest = {
+    force: true,
+    isKeepAliveEnabled: false,
+    clientType: 'WebexCCSDK',
+    allowMultiLogin: true,
+  };
 
   beforeEach(() => {
     mockWebSocketManager = new WebSocketManager({ webex: {} as any }) as jest.Mocked<WebSocketManager>;
 
-    // Mock the onMessage and onSocketClose properties
-    mockWebSocketManager.onMessage = {
-      listen: jest.fn(),
-    } as any;
+    // Mock the addEventListener method
+    mockWebSocketManager.addEventListener = jest.fn();
 
-    mockWebSocketManager.onSocketClose = {
-      listen: jest.fn(),
-    } as any;
-
-    connectionService = new ConnectionService(mockWebSocketManager);
+    connectionService = new ConnectionService(mockWebSocketManager, mockSubscribeRequest);
     jest.useFakeTimers();
   });
 
@@ -40,7 +52,7 @@ describe('ConnectionService', () => {
   });
 
   it('should handle ping message and update connection data', () => {
-    const pingMessage = JSON.stringify({ keepalive: 'true' });
+    const pingMessage = new CustomEvent<string>('message', { detail: JSON.stringify({ keepalive: 'true' }) });
     connectionService['onPing'](pingMessage);
     expect(connectionService['isKeepAlive']).toBe(true);
     expect(connectionService['isConnectionLost']).toBe(false);

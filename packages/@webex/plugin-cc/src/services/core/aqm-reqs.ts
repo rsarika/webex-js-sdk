@@ -34,7 +34,7 @@ export class AqmReqs {
   constructor(webSocketManager: WebSocketManager) {
     this.httpRequest = HttpRequest.getInstance();
     this.webSocketManager = webSocketManager;
-    this.webSocketManager.onMessage.listen(this.onMessage);
+    this.webSocketManager.addEventListener('message', this.onMessage);
   }
 
   req<TRes, TErr, TReq>(c: Conf<TRes, TErr, TReq>): Res<TRes, TReq> {
@@ -262,7 +262,7 @@ export class AqmReqs {
 
   // must be lambda
   private readonly onMessage = (msg: any) => {
-    const event = JSON.parse(msg);
+    const event = JSON.parse(msg.detail);
     if (event.type === 'Welcome') {
       LoggerProxy.logger.info(`Welcome message from Notifs Websocket${event}`);
 

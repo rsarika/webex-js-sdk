@@ -1,4 +1,3 @@
-import {Signal} from '../Signal';
 import {WebexSDK, SubscribeRequest, HTTP_METHODS, WelcomeResponse} from '../../../types';
 import {SUBSCRIBE_API, WCC_API_GATEWAY} from '../../constants';
 import {SubscribeResponse} from '../../config/types';
@@ -6,12 +5,7 @@ import LoggerProxy from '../../../logger-proxy';
 import workerScript from './keepalive.worker';
 import {KEEPALIVE_WORKER_INTERVAL, CLOSE_SOCKET_TIMEOUT} from '../config';
 
-export class WebSocketManager {
-  // TODO: Replace Signals with event handlers
-  readonly onMessage: Signal.WithData<string>;
-  private readonly onMessageSend: Signal.Send<string>;
-  readonly onSocketClose: Signal.Empty;
-  private readonly onSocketCloseSend: Signal.SendEmpty;
+export class WebSocketManager extends EventTarget {
   private websocket: WebSocket;
   shouldReconnect: boolean;
   isSocketClosed: boolean;
@@ -27,15 +21,9 @@ export class WebSocketManager {
   private keepaliveWorker: Worker;
 
   constructor(options: {webex: WebexSDK}) {
+    super();
     const {webex} = options;
     this.webex = webex;
-    const {send, signal} = Signal.create.withData<string>();
-    this.onMessage = signal;
-    this.onMessageSend = send;
-
-    const socketCloseSignal = Signal.create.empty();
-    this.onSocketClose = socketCloseSignal.signal;
-    this.onSocketCloseSend = socketCloseSignal.send;
     this.shouldReconnect = true;
     this.websocket = {} as WebSocket;
     this.isSocketClosed = false;
@@ -142,7 +130,7 @@ export class WebSocketManager {
       };
 
       this.websocket.onmessage = (e: MessageEvent) => {
-        this.onMessageSend(e.data);
+        this.dispatchEvent(new CustomEvent('message', {detail: e.data}));
         const eventData = JSON.parse(e.data);
 
         if (eventData.type === 'Welcome') {
@@ -168,7 +156,7 @@ export class WebSocketManager {
     this.isSocketClosed = true;
     this.keepaliveWorker.postMessage({type: 'terminate'});
     if (this.shouldReconnect) {
-      this.onSocketCloseSend();
+      this.dispatchEvent(new Event('socketClose'));
       let issueReason;
       if (this.forceCloseWebSocketOnTimeout) {
         issueReason = 'WebSocket auto close timed out. Forcefully closed websocket.';

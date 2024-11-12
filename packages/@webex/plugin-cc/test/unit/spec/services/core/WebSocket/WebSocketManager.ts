@@ -32,6 +32,18 @@ class MockWebSocket {
   }
 }
 
+// Mock CustomEvent class
+class MockCustomEvent<T> extends Event {
+  detail: T;
+
+  constructor(event: string, params: { detail: T }) {
+    super(event);
+    this.detail = params.detail;
+  }
+}
+
+global.CustomEvent = MockCustomEvent as any;
+
 describe('WebSocketManager', () => {
   let webSocketManager: WebSocketManager;
   let mockWebex: WebexSDK;
@@ -138,7 +150,7 @@ describe('WebSocketManager', () => {
     setTimeout(() => {
       MockWebSocket.inst.onopen();
       MockWebSocket.inst.onmessage({ data: JSON.stringify({ type: 'keepalive' }) });
-      mockWorker.postMessage({
+      mockWorker.onmessage({
         data: {
           type: 'keepalive'
         }
@@ -165,7 +177,7 @@ describe('WebSocketManager', () => {
 
     setTimeout(() => {
       MockWebSocket.inst.onopen();
-      mockWorker.postMessage({
+      mockWorker.onmessage({
         data: {
           type: 'closeSocket'
         }
