@@ -1,7 +1,5 @@
 import 'jsdom-global/register';
 import {LoginOption, StationLogoutResponse, WebexSDK} from '../../../src/types';
-import WebSocketManager from '../../../src/services/core/WebSocket/WebSocketManager';
-import WebCallingService from '../../../src/WebCallingService';
 import ContactCenter from '../../../src/cc';
 import MockWebex from '@webex/test-helper-mock-webex';
 import {StationLoginSuccess} from '../../../src/services/agent/types';
@@ -9,7 +7,7 @@ import {IAgentProfile} from '../../../src/types';
 import {AGENT, WEB_RTC_PREFIX} from '../../../src/services/constants';
 import Services from '../../../src/services';
 import config from '../../../src/config';
-import {web} from 'webpack';
+import LoggerProxy from '../../../src/logger-proxy';
 
 // Mock the Worker API
 import '../../../__mocks__/workerMock';
@@ -145,7 +143,7 @@ describe('webex.cc', () => {
     });
 
     it('should log error and reject if registration fails', async () => {
-      const mockError = new Error('Registration failed');
+      const mockError = new Error('Error while performing register');
       mockWebSocketManager.initWebSocket.mockRejectedValue(mockError);
 
       await expect(webex.cc.register()).rejects.toThrow('Error while performing register');
