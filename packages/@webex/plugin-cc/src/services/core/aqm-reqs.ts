@@ -205,13 +205,13 @@ export default class AqmReqs {
   private readonly onMessage = (msg: any) => {
     const event = JSON.parse(msg.detail);
     if (event.type === 'Welcome') {
-      LoggerProxy.logger.info(`Welcome message from Notifs Websocket${event}`);
+      LoggerProxy.logger.info(`Welcome message from Notifs Websocket`);
 
       return;
     }
 
     if (event.keepalive === 'true') {
-      LoggerProxy.logger.info(`Keepalive from web socket ${event}`);
+      LoggerProxy.logger.info(`Keepalive from web socket`);
 
       return;
     }
@@ -241,7 +241,7 @@ export default class AqmReqs {
 
     if (!isHandled) {
       LoggerProxy.logger.info(
-        `event=missingEventHandler | [AqmReqs] missing routing message handler${event}`
+        `event=missingEventHandler | [AqmReqs] missing routing message handler`
       );
     }
   };

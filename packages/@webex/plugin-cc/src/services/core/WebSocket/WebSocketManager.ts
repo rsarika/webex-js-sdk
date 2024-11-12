@@ -48,12 +48,6 @@ export class WebSocketManager extends EventTarget {
     });
   }
 
-  async reconnect() {
-    await this.connect().catch(() => {
-      LoggerProxy.logger.error(`[WebSocketStatus] | Error in connecting Websocket`);
-    });
-  }
-
   close(shouldReconnect: boolean, reason = 'Unknown') {
     if (!this.isSocketClosed && this.shouldReconnect) {
       this.shouldReconnect = shouldReconnect;
