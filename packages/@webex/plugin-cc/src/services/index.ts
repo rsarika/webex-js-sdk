@@ -7,7 +7,6 @@ export default class Services {
   private static instance: Services;
 
   constructor(webSocketManager: WebSocketManager) {
-    // this.notifs = new AqmNotifs();
     const aqmReq = new AqmReqs(webSocketManager);
     this.agent = routingAgent(aqmReq);
   }

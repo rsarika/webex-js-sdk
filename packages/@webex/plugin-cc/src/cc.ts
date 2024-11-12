@@ -20,6 +20,7 @@ import {AGENT, WEB_RTC_PREFIX} from './services/constants';
 import {WebSocketManager} from './services/core/WebSocket/WebSocketManager';
 import Services from './services';
 import LoggerProxy from './logger-proxy';
+import {ConnectionService} from './services/core/WebSocket/connection-service';
 import * as Agent from './services/agent/types';
 
 export default class ContactCenter extends WebexPlugin implements IContactCenter {
@@ -30,6 +31,7 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
   private httpRequest: HttpRequest;
   private webSocketManager: WebSocketManager;
   private webCallingService: WebCallingService;
+  private connectionService: ConnectionService;
   private services: Services;
 
   constructor(...args) {
@@ -50,6 +52,8 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
       });
 
       this.webSocketManager = new WebSocketManager({webex: this.$webex});
+
+      this.connectionService = new ConnectionService(this.webSocketManager);
 
       this.services = Services.getInstance(this.webSocketManager);
 

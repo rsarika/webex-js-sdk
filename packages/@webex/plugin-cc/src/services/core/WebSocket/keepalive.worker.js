@@ -1,4 +1,3 @@
-/* eslint-disable */
 // TODO: Try to find alternative to using Blob and script here
 const workerScript = `
 console.log("*** Keepalive Worker Thread ***");

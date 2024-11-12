@@ -7,6 +7,7 @@ import workerScript from './keepalive.worker';
 import {KEEPALIVE_WORKER_INTERVAL, CLOSE_SOCKET_TIMEOUT} from '../config';
 
 export class WebSocketManager {
+  // TODO: Replace Signals with event handlers
   readonly onMessage: Signal.WithData<string>;
   private readonly onMessageSend: Signal.Send<string>;
   readonly onSocketClose: Signal.Empty;

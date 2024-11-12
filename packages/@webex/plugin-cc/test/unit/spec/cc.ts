@@ -27,6 +27,7 @@ jest.mock('../../../src/logger-proxy', () => ({
 
 jest.mock('../../../src/services/config');
 jest.mock('../../../src/services/core/WebSocket/WebSocketManager');
+jest.mock('../../../src/services/core/WebSocket/connection-service');
 jest.mock('../../../src/WebCallingService');
 jest.mock('../../../src/services');
 

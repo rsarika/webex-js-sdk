@@ -31,13 +31,15 @@ export class ConnectionService {
   private isSocketReconnected: boolean;
   private isKeepAlive: boolean;
   private reconnectInterval: ReturnType<typeof setInterval>;
+  private webSocketManager: WebSocketManager;
   private readonly onConnectionLostSend: Signal.Send<ConnectionLostDetails>;
   public readonly onConnectionLost: Signal.WithData<ConnectionLostDetails>;
 
-  constructor(private webSocketManager: WebSocketManager) {
+  constructor(webSocketManager: WebSocketManager) {
     const {send, signal} = Signal.create.withData<ConnectionLostDetails>();
     this.onConnectionLost = signal;
     this.onConnectionLostSend = send;
+    this.webSocketManager = webSocketManager;
 
     this.isConnectionLost = false;
     this.isRestoreFailed = false;
