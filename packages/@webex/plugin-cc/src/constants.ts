@@ -15,6 +15,9 @@ export const WEBEX_REQUEST_FILE = 'WebexRequest';
 export const TASK_MANAGER_FILE = 'TaskManager';
 export const AGENT_STATE_CHANGE = 'agent:stateChange';
 export const AGENT_MULTI_LOGIN = 'agent:multiLogin';
+export const TASK_FILE = 'Task';
+export const VOICE_FILE = 'Voice';
+export const WEBRTC_FILE = 'WebRTC';
 // AGENT OUTDIAL CONSTANTS
 export const OUTDIAL_DIRECTION = 'OUTBOUND';
 export const ATTRIBUTES = {};

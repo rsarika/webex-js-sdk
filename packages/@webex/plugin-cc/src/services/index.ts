@@ -30,7 +30,7 @@ export default class Services {
     });
   }
 
-  public static getInstance(options: {
+  public static getInstance(options?: {
     webex: WebexSDK;
     connectionConfig: SubscribeRequest;
   }): Services {

@@ -33,8 +33,22 @@ The AgentConfigService class provides methods to fetch agent configuration data.
 */
 export default class AgentConfigService {
   private webexReq: WebexRequest;
+  private agentProfile: Profile;
   constructor() {
     this.webexReq = WebexRequest.getInstance();
+  }
+
+  /** this method gets the agent profile data at any given time
+   */
+  public getAgentProfile(): Profile {
+    return this.agentProfile;
+  }
+
+  /** this method sets the agent profile data
+   * to keep the profile data in memory and keep it updated
+   */
+  public setAgentProfile(agentProfile: Profile): void {
+    this.agentProfile = agentProfile;
   }
 
   /**
@@ -115,6 +129,8 @@ export default class AgentConfigService {
         urlMapping: urlMappingData,
         multimediaProfileId,
       });
+
+      this.setAgentProfile(response);
 
       // replace CONFIG_FILE_NAME with CONFIG_FILE_NAME
       LoggerProxy.info('Parsing completed for agent-config', {

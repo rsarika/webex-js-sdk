@@ -577,36 +577,9 @@ function refreshUIPostConsult() {
 
 // Register task listeners
 function registerTaskListeners(task) {
-  task.on('task:assigned', (task) => {
-    updateTaskList(); // Update the task list UI to have latest tasks
-    console.info('Call has been accepted for task: ', task.data.interactionId);
-    handleTaskSelect(task);
-  });
+
   task.on('task:media', (track) => {
     document.getElementById('remote-audio').srcObject = new MediaStream([track]);
-  });
-  task.on('task:end', (task) => {
-    incomingDetailsElm.innerText = '';
-    if (currentTask.data.interactionId === task.data.interactionId) {
-      if (!task.data.wrapUpRequired) {
-        answerElm.disabled = true;
-        declineElm.disabled = true;
-        console.log('Task ended without call being answered');
-      }
-      else {
-        console.info('Call ended successfully');
-        updateButtonsPostEndCall();
-      }
-      updateTaskList(); // Update the task list UI to have latest tasks
-      handleTaskSelect(task);
-    }
-  });
-
-  task.on('task:hold', (task) => {
-    if (currentTask.data.interactionId === task.data.interactionId) {
-      console.info('Call has been put on hold');
-      holdResumeElm.innerText = 'Resume';
-    }
   });
 
   // Consult flows
@@ -702,59 +675,26 @@ function disableAllCallControls() {
 }
 
 function updateCallControlUI(task) {
-  const { data } = task;
-  const { interaction, mediaResourceId } = data;
-  const {
-    isTerminated,
-    media,
-    participants,
-    callProcessingDetails
-  } = interaction;
+  wrapupElm.disabled = !task.controlsState.wrapup;
+  wrapupCodesDropdownElm.disabled = !task.controlsState.wrapup;
+  holdResumeElm.disabled = !task.controlsState.holdResume;
+  holdResumeElm.innerText = task.controlsState.isHold ? 'Resume' : 'Hold';
+  pauseResumeRecordingElm.disabled = !task.controlsState.pauseResumeRecording;
+  pauseResumeRecordingElm.innerText = task.controlsState.isRecordingPaused ? 'Resume Recording' : 'Pause Recording';
+  endElm.disabled = !task.controlsState.end;
+  muteElm.disabled = !task.controlsState.muteUnmute;
+  consultTabBtn.disabled = !task.controlsState.consult;
+  transferElm.disabled = !task.controlsState.transfer;
+  consultTransferBtn.disabled = !task.controlsState.conference;
+  endConsultBtn.disabled = !task.controlsState.endConsult;
+
+  if (task.data.interaction.mediaType === 'chat' || task.data.interaction.mediaType === 'email') {
   
-
-  if (task.data.wrapUpRequired) {
-    updateButtonsPostEndCall();
-    return;
-  }
-  wrapupElm.disabled = true;
-  wrapupCodesDropdownElm.disabled = true;
-  const hasParticipants = Object.keys(participants).length > 1;
-  const isNew = task.data.interaction.state === 'new';
-
-  if (isNew) {
-    disableAllCallControls();
-  } else if (task.data.interaction.mediaType === 'chat' || task.data.interaction.mediaType === 'email') {
-    holdResumeElm.disabled = true;
-    muteElm.disabled = true;
-    pauseResumeRecordingElm.disabled = true;
-    consultTabBtn.disabled = true;
-    declineElm.disabled = true;
-    transferElm.disabled = false;
-    endElm.disabled = !hasParticipants;
-    pauseResumeRecordingElm.disabled = true;
   } else if (task?.data?.interaction?.mediaType === 'telephony') {
-    // hold/resume call
-    const isHold = media && media[mediaResourceId] && media[mediaResourceId].isHold;
-    holdResumeElm.disabled = isTerminated;
-    holdResumeElm.innerText = isHold ? 'Resume' : 'Hold';
-    transferElm.disabled = false;
-    muteElm.disabled = false;
-    endElm.disabled = !hasParticipants;
-    consultTabBtn.disabled = false;
-    pauseResumeRecordingElm.disabled = false;
-    pauseResumeRecordingElm.innerText = 'Pause Recording';
-    if (callProcessingDetails) {
-      const { pauseResumeEnabled, isPaused } = callProcessingDetails;
-
-      // pause/resume recording
-      // pauseResumeRecordingElm.disabled = !pauseResumeEnabled; // TODO: recheck after rajesh PR(https://github.com/webex/widgets/pull/427/files) and why it is undefined
-      pauseResumeRecordingElm.innerText = isPaused === 'true' ? 'Resume Recording' : 'Pause Recording';
-    }
-    
     // end consult, consult transfer buttons
-    const { consultMediaResourceId, destAgentId, destinationType } = data;
+    const { consultMediaResourceId, destAgentId, destinationType } = task.data;
     if (consultMediaResourceId && destAgentId && destinationType) {
-      const destination = participants[destAgentId];
+      const destination = task.data.interaction.participants[destAgentId];
       destinationTypeDropdown.value = destinationType;
       consultDestinationInput.value = destination.dn; 
 
@@ -927,13 +867,17 @@ function register() {
         console.error('Event subscription failed', error);
     })
 
-    webex.cc.on('task:incoming', (task) => {
+    webex.cc.on('task:created', (task) => {
       taskEvents.detail.task = task;
       incomingCallListener.dispatchEvent(taskEvents);
     });
 
-    webex.cc.on('task:hydrate', (currentTask) => {
-      handleTaskHydrate(currentTask);
+    webex.cc.on('task:updated', (task) => {
+      updateTaskList();
+    });
+
+    webex.cc.on('task:removed', (task) => {
+      updateTaskList();
     });
 
     webex.cc.on('agent:stateChange', (data) => {
@@ -991,20 +935,6 @@ function doDeRegister() {
 }
 
 deregisterBtn.addEventListener('click', doDeRegister);
-
-function handleTaskHydrate(task) {
-  currentTask = task;
-
-  if (!currentTask || !currentTask.data || !currentTask.data.interaction) {
-    console.error('task:hydrate --> No task data found.');
-    alert('task:hydrate --> No task data found.');
-    
-    return;
-  }
-
-  handleTaskSelect(currentTask);
-  updateUnregisterButtonState();
-}
 
 function populateWrapupCodesDropdown() {
   wrapupCodesDropdownElm.innerHTML = ''; // Clear previous options
@@ -1165,7 +1095,7 @@ async function fetchBuddyAgentsNodeList() {
   }
 }
 
-incomingCallListener.addEventListener('task:incoming', (event) => {
+incomingCallListener.addEventListener('newTask', (event) => {
   currentTask = event.detail.task;
   updateTaskList();
   taskId = event.detail.task.data.interactionId;

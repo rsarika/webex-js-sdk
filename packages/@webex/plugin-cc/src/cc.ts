@@ -115,12 +115,30 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
     this.trigger(TASK_EVENTS.TASK_HYDRATE, task);
   };
 
+  private handleTaskCreated = (task: ITask) => {
+    // @ts-ignore
+    this.trigger(TASK_EVENTS.TASK_CREATED, task);
+  };
+
+  private handleTaskUpdated = (task: ITask) => {
+    // @ts-ignore
+    this.trigger(TASK_EVENTS.TASK_UPDATED, task);
+  };
+
+  private handleTaskRemoved = (task: ITask) => {
+    // @ts-ignore
+    this.trigger(TASK_EVENTS.TASK_REMOVED, task);
+  };
+
   /**
    * An Incoming Call listener.
    */
   private incomingTaskListener() {
     this.taskManager.on(TASK_EVENTS.TASK_INCOMING, this.handleIncomingTask);
     this.taskManager.on(TASK_EVENTS.TASK_HYDRATE, this.handleTaskHydrate);
+    this.taskManager.on(TASK_EVENTS.TASK_CREATED, this.handleTaskCreated);
+    this.taskManager.on(TASK_EVENTS.TASK_UPDATED, this.handleTaskUpdated);
+    this.taskManager.on(TASK_EVENTS.TASK_REMOVED, this.handleTaskRemoved);
   }
 
   /**
@@ -179,6 +197,9 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
 
       this.taskManager.off(TASK_EVENTS.TASK_INCOMING, this.handleIncomingTask);
       this.taskManager.off(TASK_EVENTS.TASK_HYDRATE, this.handleTaskHydrate);
+      this.taskManager.off(TASK_EVENTS.TASK_CREATED, this.handleTaskCreated);
+      this.taskManager.off(TASK_EVENTS.TASK_UPDATED, this.handleTaskUpdated);
+      this.taskManager.off(TASK_EVENTS.TASK_REMOVED, this.handleTaskRemoved);
       this.taskManager.unregisterIncomingCallEvent();
 
       this.services.webSocketManager.off('message', this.handleWebSocketMessage);
@@ -324,6 +345,7 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
           if (this.$config && this.$config.allowAutomatedRelogin) {
             await this.silentRelogin();
           }
+          this.services.config.setAgentProfile(this.agentConfig);
 
           return this.agentConfig;
         })
@@ -398,6 +420,12 @@ export default class ContactCenter extends WebexPlugin implements IContactCenter
         },
         ['behavioral', 'business', 'operational']
       );
+
+      // TODO: https://jira-eng-gpk2.cisco.com/jira/browse/SPARK-626777 Implement the de-register method and close the listener there
+      // this.services.webSocketManager.on('message', this.handleWebSocketMessage);
+      // this.incomingTaskListener();
+      this.agentConfig.deviceType = data.loginOption;
+      this.services.config.setAgentProfile(this.agentConfig);
 
       return response;
     } catch (error) {

@@ -54,6 +54,9 @@ export const TASK_EVENTS = {
   TASK_WRAPUP: 'task:wrapup',
   TASK_REJECT: 'task:rejected',
   TASK_HYDRATE: 'task:hydrate',
+  TASK_CREATED: 'task:created',
+  TASK_UPDATED: 'task:updated',
+  TASK_REMOVED: 'task:removed',
 } as const;
 
 export type TASK_EVENTS = Enum<typeof TASK_EVENTS>;
@@ -410,6 +413,33 @@ export type ContactCleanupData = {
  */
 export type TaskResponse = AgentContact | Error | void;
 
+export type ControlButton = {
+  visible: boolean;
+  disabled: boolean;
+  isOn: boolean;
+};
+
+/**
+ * This is used to show/hide the task controls in the UI
+ */
+export interface TaskControlsVisibilityAndState {
+  accept: boolean;
+  decline: boolean;
+  end: boolean;
+  muteUnmute: boolean;
+  holdResume: boolean;
+  isHold: boolean;
+  consult: boolean;
+  transfer: boolean;
+  conference: boolean;
+  wrapup: boolean;
+  pauseResumeRecording: boolean;
+  isRecordingPaused: boolean;
+  endConsult: boolean;
+  consultInitiated: boolean;
+  consultInProgress: boolean;
+}
+
 /**
  * Represents an interface for managing task related operations.
  */
@@ -418,10 +448,15 @@ export interface ITask extends EventEmitter {
    * Event data received in the CC events
    */
   data: TaskData;
+
   /**
    * Map of task with call
    */
   webCallMap: Record<TaskId, CallId>;
+  /**
+   * controlsState is used to show/hide the task controls in the UI
+   */
+  controlsState: TaskControlsVisibilityAndState;
   /**
    * Switch off the call listeners
    */
@@ -429,7 +464,7 @@ export interface ITask extends EventEmitter {
   /**
    * Used to update the task when the data received on each event
    */
-  updateTaskData(newData: TaskData): ITask;
+  updateTaskData(newData: TaskData): void;
   /**
    * Answers/accepts the incoming task
    *
@@ -504,4 +539,7 @@ export interface ITask extends EventEmitter {
    * ```
    */
   resumeRecording(resumeRecordingPayload: ResumeRecordingPayload): Promise<TaskResponse>;
+
+  updateControlsVisibility(): TaskControlsVisibilityAndState;
+  mediaStreamTrack?: MediaStreamTrack;
 }
