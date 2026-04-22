@@ -141,6 +141,11 @@ const MobiusSocket = WebexPlugin.extend({
     );
   },
 
+  /**
+   * Returns the per-session cache of seen async_event IDs, creating it on first access.
+   * @param {string} sessionId - The session identifier.
+   * @returns {Map<string, boolean>} Ordered cache of seen event IDs for the session.
+   */
   _getSeenAsyncEventIds(sessionId) {
     let seenAsyncEventIds = this._seenAsyncEventIdsBySession.get(sessionId);
 
@@ -152,6 +157,11 @@ const MobiusSocket = WebexPlugin.extend({
     return seenAsyncEventIds;
   },
 
+  /**
+   * Clears the dedup cache for one session or for all sessions when omitted.
+   * @param {string} [sessionId] - Optional session identifier.
+   * @returns {void}
+   */
   _clearSeenAsyncEventIds(sessionId) {
     if (sessionId) {
       this._seenAsyncEventIdsBySession.delete(sessionId);
@@ -162,6 +172,12 @@ const MobiusSocket = WebexPlugin.extend({
     this._seenAsyncEventIdsBySession.clear();
   },
 
+  /**
+   * Tracks a newly seen async_event ID and reports whether a duplicate should be suppressed.
+   * @param {string} sessionId - The session identifier.
+   * @param {object} envelope - Parsed websocket message envelope.
+   * @returns {boolean} True when the event has already been seen for this session.
+   */
   _trackAsyncEventAndShouldSuppressDuplicate(sessionId, envelope) {
     if (envelope?.type !== 'async_event' || !envelope.eventId) {
       return false;
